@@ -73,8 +73,7 @@ def evaluate_state(game_state: GameState, maximizing_player: int) -> float:
                 elif empty_count == 2:
                     potential += 0.05
 
-    turn_sign = 1.0 if game_state.current_player == maximizing_player else -1.0
-    return score_diff + turn_sign * potential
+    return score_diff + potential
 
 # Order candidate moves from highest impact to lowest so stronger moves are checked first
 def order_moves(board: SudokuBoard, moves: List[Move]) -> List[Move]:
