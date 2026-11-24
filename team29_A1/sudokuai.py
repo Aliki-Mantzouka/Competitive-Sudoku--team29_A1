@@ -16,21 +16,80 @@ class SudokuAI(competitive_sudoku.sudokuai.SudokuAI):
     def __init__(self):
         super().__init__()
 
-    # N.B. This is a very naive implementation.
+
+    def generate_legal_moves(self, game_state: GameState):
+        board = game_state.board
+        N = board.N
+        m = board.m
+        n = board.n
+
+        legal_moves = []
+
+        # Get cells allowed for the current player
+        allowed_squares = game_state.player_squares()
+
+        # None means all cells are allowed
+        if allowed_squares is None:
+            allowed_squares = [
+                (i, j)
+                for i in range(N)
+                for j in range(N)
+            ]
+
+        # Examine every allowed cell
+        for i, j in allowed_squares:
+
+            # Skip cells that are already occupied
+            if board.get((i, j)) != SudokuBoard.empty:
+                continue
+
+            # Try every possible value
+            for value in range(1, N + 1):
+
+                # Exclude taboo moves
+                if TabooMove((i, j), value) in game_state.taboo_moves:
+                    continue
+
+                # Check Sudoku constraint C0
+
+                # Check row
+                if any(board.get((i, col)) == value
+                    for col in range(N)):
+                    continue
+
+                # Check column
+                if any(board.get((row, j)) == value
+                    for row in range(N)):
+                    continue
+
+                # Check block
+                start_row = (i // m) * m
+                start_col = (j // n) * n
+
+                block_contains_value = False
+
+                for row in range(start_row, start_row + m):
+                    for col in range(start_col, start_col + n):
+                        if board.get((row, col)) == value:
+                            block_contains_value = True
+                            break
+
+                    if block_contains_value:
+                        break
+
+                if block_contains_value:
+                    continue
+
+                # All conditions satisfied
+                legal_moves.append(Move((i, j), value))
+
+        return legal_moves
+
+
     def compute_best_move(self, game_state: GameState) -> None:
-        N = game_state.board.N
+        legal_moves = self.generate_legal_moves(game_state)
 
-        # Check whether a cell is empty, a value in that cell is not taboo, and that cell is allowed
-        def possible(i, j, value):
-            return game_state.board.get((i, j)) == SudokuBoard.empty \
-                   and not TabooMove((i, j), value) in game_state.taboo_moves \
-                       and (i, j) in game_state.player_squares()
+        if not legal_moves:
+            return
 
-        all_moves = [Move((i, j), value) for i in range(N) for j in range(N)
-                     for value in range(1, N+1) if possible(i, j, value)]
-        move = random.choice(all_moves)
-        self.propose_move(move)
-        while True:
-            time.sleep(0.2)
-            self.propose_move(random.choice(all_moves))
-
+        self.propose_move(legal_moves[0])
